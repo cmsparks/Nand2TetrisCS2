@@ -1,0 +1,366 @@
+package translator;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.APPEND;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.*;
+
+public class StartupTranslator 
+{
+	public static List<String> varTableStrings = new ArrayList<String>();
+	public static List<String> varTableNumbers = new ArrayList<String>();
+	public static int currentLine;
+	public static void main(String[] args) 
+	{
+		// TODO Auto-generated method stub
+		InputASM();
+	}
+	
+	public static void InputASM() 
+	{
+
+		System.out.println("Enter input file path");
+		String inputFilePath = null;
+		String inputASM = null;
+		
+		try
+		{
+		    BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+		    inputFilePath = bufferRead.readLine();
+		    System.out.println("Opening "+inputFilePath+".asm");
+		    inputASM = inputFilePath+".asm";
+		}
+		
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		File asmFileIn = new File(inputASM);
+		FileInputStream asmInput = null;
+		BufferedInputStream bufferedInput = null;
+		DataInputStream dataInput = null;
+		
+		try 
+		{
+			Path path = Paths.get(inputFilePath+".hack");
+			asmInput = new FileInputStream(asmFileIn);
+			bufferedInput = new BufferedInputStream(asmInput);
+			dataInput = new DataInputStream(bufferedInput);
+			Files.deleteIfExists(path);
+			System.out.println("Translating "+inputASM);
+
+			while(dataInput.available() != 0) //while there is still data to read
+			{
+				String Instruction = TranslateInstructions(dataInput.readLine());
+				if(Instruction != "Comment" && Instruction != "Loop")
+				{
+					OutputHack(Instruction,path);
+				}
+				else
+				{
+					System.out.println("Comment/Loop");
+				}
+				currentLine = currentLine+1;
+			}
+		System.out.println("Saving "+inputFilePath+".hack");
+		asmInput.close();
+		bufferedInput.close();
+		dataInput.close();
+		
+		}
+		catch(FileNotFoundException e)
+		{
+			e.printStackTrace();
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public static String TranslateInstructions(String asmData)
+	{
+		String instructionOut = null;
+		if(asmData.startsWith("@"))
+		{
+			instructionOut = aInstruction(asmData);
+		}
+		else if(asmData.startsWith("("))
+		{
+		   	loopInst(asmData);
+		   	instructionOut = "Loop";
+		}
+		else if(asmData.startsWith("//"))
+		{
+			instructionOut = "Comment";
+		}
+		else
+		{
+			instructionOut = cInstruction(asmData);
+		}
+		return instructionOut;
+	}
+	public static void loopInst(String asmData)
+	{
+		asmData = asmData.replace("(", "");
+		asmData = asmData.replace(")", "");
+		varTableStrings.add(asmData);
+		varTableNumbers.add(Integer.toString(currentLine));
+	}
+	
+	public static String aInstruction(String asmData)
+	{
+		String instructionOut = "0000000000000000";
+		String onlyAddress = asmData.substring(1);
+		char checkR = asmData.charAt(1);
+
+		if(onlyAddress.matches("[0-9]+"))
+		{
+			int integer = Integer.parseInt(onlyAddress);
+			if(integer < 24577)	
+			{
+				instructionOut = Integer.toBinaryString(integer);
+				for(int i=instructionOut.length(); i<16; i++)
+				{
+					instructionOut="0"+instructionOut;
+				}
+			}
+			else
+			{
+				System.out.println("Error address not in range");
+				System.exit(1);
+			}
+		}
+		else if(checkR == 'R' && Integer.parseInt(asmData.substring(2)) < 16)
+		{
+			int integer = Integer.parseInt(asmData.substring(2));
+			instructionOut = Integer.toBinaryString(integer);
+			for(int i=instructionOut.length(); i<16; i++)
+			{
+				instructionOut="0"+instructionOut;
+			}
+		}
+		else
+		{
+			if(true)
+			{
+				int currentLocation = varTableStrings.indexOf(onlyAddress);
+				instructionOut = varTableNumbers.get(currentLocation);
+				for(int i=instructionOut.length(); i<16; i++)
+				{
+					instructionOut="0"+instructionOut;
+				}
+			}
+			else
+			{
+				int varAddress = varTableNumbers.size() + 16;
+				String varString = Integer.toString(varAddress);
+				varTableStrings.add(onlyAddress);
+				varTableNumbers.add(varString);
+			}
+
+			
+		}
+		return instructionOut;
+	}
+	
+	public static String cInstruction(String asmData)
+	{
+		String comp = "0000000";//initialize variables
+		String dest = "000";
+		String jmp = "000";
+		String instructionOut = "0000000000000000";
+		asmData = asmData.replaceAll("\\s+", ""); //Format the asmData string
+		asmData = asmData.toUpperCase();
+		//Set Comp/Dest Strings
+		if(asmData.contains("="))
+		{
+			String d = "0";
+			String a = "0";
+			String m = "0";
+			String a1 = "0";
+			String compBianary = "000000";
+			String destString = asmData.substring(0, asmData.indexOf("=")); //Separate destination string and comparison string
+			String compString = asmData.substring(asmData.indexOf("=")+1,asmData.indexOf(";"));
+			//Destination
+			if(destString.contains("D"))
+			{
+				d = "1";
+			}
+			else if(destString.contains("A"))
+			{
+				a = "1";
+			}
+			else if(destString.contains("M"))
+			{
+				m = "1";
+			}
+			dest = d+a+m;
+			//Comparison
+			if(compString.contains("M"))
+			{
+				a1 = "1";
+			}
+			if(compString.contentEquals("0"))
+			{
+				compBianary = "101010";
+			}
+			else if(compString.contentEquals("1"))
+			{
+				compBianary = "111111";
+			}
+			else if(compString.contentEquals("-1"))
+			{
+				compBianary = "111010";
+			}
+			else if(compString.contentEquals("D"))
+			{
+				compBianary = "001100";
+			}
+			else if(compString.contentEquals("A")|| compString.contentEquals("M"))
+			{
+				compBianary = "110000";
+			}
+			else if(compString.contentEquals("!D"))
+			{
+				compBianary = "001101";
+			}
+			else if(compString.contentEquals("!A") || compString.contentEquals("!M"))
+			{
+				compBianary = "110001";
+			}
+			else if(compString.contentEquals("-D"))
+			{
+				compBianary = "001111";
+			}
+			else if(compString.contentEquals("-A") || compString.contentEquals("-M"))
+			{
+				compBianary = "110011";
+			}
+			else if(compString.contentEquals("D+1"))
+			{
+				compBianary = "011111";
+			}
+			else if(compString.contentEquals("A+1") || compString.contentEquals("M+1"))
+			{
+				compBianary = "110111";
+			}
+			else if(compString.contentEquals("D-1"))
+			{
+				compBianary = "001110";
+			}
+			else if(compString.contentEquals("A-1") || compString.contentEquals("M-1"))
+			{
+				compBianary = "110010";
+			}
+			else if(compString.contentEquals("D+A") || compString.contentEquals("D+M"))
+			{
+				compBianary = "000010";
+			}
+			else if(compString.contentEquals("D-A") || compString.contentEquals("D-M"))
+			{
+				compBianary = "010011";
+			}
+			else if(compString.contentEquals("A-D") || compString.contentEquals("M-D"))
+			{
+				compBianary = "000111";
+			}
+			else if(compString.contentEquals("D&A") || compString.contentEquals("D&M"))
+			{
+				compBianary = "000000";
+			}
+			else if(compString.contentEquals("D|A") || compString.contentEquals("D|M"))
+			{
+				compBianary = "010101";
+			}
+			else if(comp != null)
+			{
+				System.out.println("C Instruction Syntax Error");
+				System.exit(1);
+			}
+			comp = a1+compBianary;
+			dest = d+a+m;
+			
+		}
+		//Set Jump Strings
+		if(asmData.contains("J"))
+		{
+			if(asmData.contains("JMP"))
+			{
+				jmp = "111";
+			}
+			else if(asmData.contains("JEQ"))
+			{
+				jmp = "010";
+			}
+			else if(asmData.contains("JLT"))
+			{
+				jmp = "100";
+			}
+			else if(asmData.contains("JGT"))
+			{
+				jmp = "001";
+			}
+			else if(asmData.contains("JGE"))
+			{
+				jmp = "011";
+			}
+			else if(asmData.contains("JLE"))
+			{
+				jmp = "110";
+			}
+			else if(asmData.contains("JNE"))
+			{
+				jmp = "101";
+			}
+			else
+			{
+				jmp = "000";
+			}
+		}
+		else
+		{
+			jmp = "000";
+		}
+		instructionOut = "111"+comp+dest+jmp;
+		return instructionOut;
+	}
+	
+	public static void OutputHack(String hackOutput, Path outputFilePath) 
+	{
+		OpenOption[] options = new OpenOption[] {CREATE, APPEND};
+		byte[] byteOutput = hackOutput.getBytes();
+		byte[] newln = "\n".getBytes();
+		
+		try(OutputStream out = new BufferedOutputStream(Files.newOutputStream(outputFilePath, options)))
+		{
+			out.write(byteOutput);
+			out.write(newln);
+		}
+		catch(IOException x)
+		{
+			System.err.println(x);
+		}
+		
+	}
+}
+
+

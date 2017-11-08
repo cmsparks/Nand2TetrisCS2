@@ -1,0 +1,68 @@
+/**
+ * And gate: 
+ * out = 1 if (a == 1 and b == 1)
+ *       0 otherwise
+ */
+
+CHIP Display {
+    IN a, b, c, d;
+    OUT s1, s2, s3, s4, s5, s6, s7;
+
+    PARTS:
+    //Segment Simplified Parts
+        //a'
+	Not(in=a,out=nota);
+	//b'
+	Not(in=b,out=notb);
+	//c'
+	Not(in=c,out=notc);
+	//d'
+	Not(in=d,out=notd);
+    //Segment 1
+    	//a'b'd'
+	And(a=nota,b=notb,out=-a-b);
+	And(a=-a-b,b=notd,out=-a-b-d);
+	//a'bd
+	And(a=nota,b=b,out=-ab);
+	And(a=-ab,b=d,out=-abd);
+	//a'c
+	And(a=nota,b=c,out=-ac);
+	//ab'c'
+	And(a=a,b=notb,out=a-b);
+	And(a=a-b,b=notc,out=a-b-c)
+	//Or Gates
+	Or(a=-a-b-c,b=-abd,out=1Or1);
+	Or(a=1Or1,b=-ac,out=1Or2);
+	Or(a=1Or2,b=a-b-c,out=s1);
+
+
+
+    //Segment 2
+
+
+
+    
+    //Segment 3
+
+
+
+    
+    //Segment 4
+
+
+
+    
+    //Segment 5
+
+
+
+    
+    //Segment 6
+    
+
+
+
+    //Segment 7
+    
+    
+}

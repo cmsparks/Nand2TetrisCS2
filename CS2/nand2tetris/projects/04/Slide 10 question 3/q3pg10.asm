@@ -1,0 +1,10 @@
+@sum
+D=M
+@12
+D=D-M
+@j
+D=D+A
+@q
+M=D
+@9
+0;JMP

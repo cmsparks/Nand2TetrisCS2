@@ -1,0 +1,101 @@
+CHIP Display {
+    IN a, b, c, d;
+    OUT out[7];
+
+    PARTS:
+    //Segment Simplified Parts
+        //a'
+	Not(in=a,out=nota);
+	//b'
+	Not(in=b,out=notb);
+	//c'
+	Not(in=c,out=notc);
+	//d'
+	Not(in=d,out=notd);
+
+//SEG 1
+//A’B’D’+A’BD+A’C+AB’C’
+	
+	And(a=nota,b=notb,out=nanb);
+	And(a=nanb,b=notd,out=nanbnd);
+
+	And(a=nota,b=b,out=nab);
+	And(a=nab,b=d,out=nabd);
+
+	And(a=nota,b=c,out=nac);
+
+	And(a=a,b=notb,out=anb);
+	And(a=anb,b=notc,out=anbnc);
+
+	Or(a=nanbnd,b=nabd,out=seg1or1);
+	Or(a=seg1or1,b=nac,out=seg1or2);
+	Or(a=seg1or2,b=anbnc,out=out[0]);
+
+
+//SEG 2
+//a’b’+b’c’+a’c’d’+a’cd
+
+	And(a=notb,b=notc,out=nbnc);
+
+	And(a=nota,b=notc,out=nanc);
+	And(a=nanc,b=notd,out=nancnd);
+
+	And(a=nac,b=d,out=nacd);
+
+	Or(a=nanb,b=nbnc,out=seg2or1);
+	Or(a=seg2or1,b=nancnd,out=seg2or2);
+	Or(a=seg1or2,b=nacd,out=out[1]);
+
+//SEG 3
+//B’C’+A’D+A’B
+
+	And(a=nota,b=d,out=nad);
+
+	Or(a=nbnc,b=nad,out=seg3or1);
+	Or(a=seg3or1,b=nab,out=out[2]);
+
+//SEG 4
+//A’B’C’D’+A’BC’D+A’B’C+AB’C’+A’BCD’
+
+	And(a=nanbnd,b=notc,out=nanbncnd);
+
+	And(a=nab,b=notc,out=nabnc);
+	And(a=nabnc,b=d,out=nabncd);
+
+	And(a=nanb,b=c,out=nanbc);
+
+	And(a=nab,b=c,out=nabc);
+	And(a=nabc,b=notd,out=nabcnd);
+
+	Or(a=nanbncnd,b=nabncd,out=seg4or1);
+	Or(a=seg4or1,b=nanbc,out=seg4or2);
+	Or(a=seg4or2,b=anbnc,out=seg4or3);
+	Or(a=seg4or3,b=nabcnd,out=out[3]);
+
+//SEG 5
+//b’c’d’+a’cd’
+
+	And(a=nbnc,b=notd,out=nbncnd);
+
+	And(a=nac,b=notd,out=nacnd);
+
+	Or(a=nbncnd,b=nacnd,out=out[4]);
+
+//SEG 6
+//A’C’D’+A’BC’+A’BD’+AB’C’
+
+	And(a=nab,b=notd,out=nabnd);
+
+
+	Or(a=nancnd,b=nabnc,out=seg6or1);
+	Or(a=seg6or1,b=nabnd,out=seg6or2);
+	Or(a=seg6or2,b=anbnc,out=out[5]);
+
+//SEG 7
+//a’b’c+a’cd’+a’bc’+ab’c’
+
+	Or(a=nanbc,b=nacnd,out=seg7or1);
+	Or(a=seg7or1,b=nabnc,out=seg7or2);
+	Or(a=seg7or2,b=anbnc,out=out[6]);
+
+}

@@ -1,0 +1,14 @@
+/**
+ * And gate: 
+ * out = 1 if (a == 1 and b == 1)
+ *       0 otherwise
+ */
+
+CHIP 7SegmentDisplay {
+    IN in[4];
+    OUT out[7];
+
+    PARTS:
+    // Put your code here:
+    
+}
